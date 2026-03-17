@@ -7,8 +7,9 @@ ST10296771 Mmangaliso Malunga
  <img width="940" height="527" alt="image" src="https://github.com/user-attachments/assets/51fb883f-fbc2-4c22-8f5f-0097d423ddbe" />
 
 
-# Section 2:
-Web app and git hub link
+# Section 2: 
+Web App: 
+GitHub: https://github.com/M-Malunga/CLDV7311-POE.git 
 
 # Section 3:
 Question 1:
