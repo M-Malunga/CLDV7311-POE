@@ -1,12 +1,36 @@
 using Microsoft.AspNetCore.Mvc;
-using ST10296771_CLDV7311_POE.Models;
-using System.Diagnostics;
+using Microsoft.EntityFrameworkCore;
+using ST10296771_CLDV7311_POE.Controllers;
+using ST10296771_CLDV7311_POE.Data;
 
 namespace ST10296771_CLDV7311_POE.Controllers
 {
     public class HomeController : Controller
     {
-        public IActionResult Index()
+        private readonly ApplicationDbContext _context;
+
+        public HomeController(ApplicationDbContext context)
+        {
+            _context = context;
+        }
+
+        public async Task<IActionResult> Index()
+        {
+            ViewBag.TotalVenues = await _context.Venues.CountAsync();
+            ViewBag.TotalEvents = await _context.Events.CountAsync();
+
+            var recentBookings = await _context.Bookings
+                .Include(b => b.Event)
+                .Include(b => b.Venue)
+                .Include(b => b.User)
+                .OrderByDescending(b => b.BookingDate)
+                .Take(5)
+                .ToListAsync();
+
+            return View(recentBookings);
+        }
+
+        public IActionResult About()
         {
             return View();
         }
@@ -14,12 +38,6 @@ namespace ST10296771_CLDV7311_POE.Controllers
         public IActionResult Privacy()
         {
             return View();
-        }
-
-        [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
-        public IActionResult Error()
-        {
-            return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
         }
     }
 }
