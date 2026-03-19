@@ -8,7 +8,7 @@ ST10296771 Mmangaliso Malunga
 
 
 # Section 2: 
-Web App: 
+Web App: https://st10296771-cldv7111-gte2f6fdg7hgdsbt.uaenorth-01.azurewebsites.net
 GitHub: https://github.com/M-Malunga/CLDV7311-POE.git 
 
 # Section 3:
