@@ -57,3 +57,8 @@ Developer-Friendly Productivity: It is built for more modern practices and integ
 
 In Conclusion:
 I aim to say that with Infrastructure as a Service, EventEase would have had to maintain all of the aforementioned aspects, such as scaling and management of virtual machine infrastructure. This is like buying individual sections of a car and building it yourself; it is not time-conservative. With Software as a Service, they would only have a common and unique prebuilt events management platform, which loses the unique flair that could have been possible with a custom application. PaaS provides the perfect balance of freedom and flexibility while allowing simplicity.
+
+Reference List
+Mrzygłód, K. (2022) Azure for developers. 2nd edn. Birmingham: Packt Publishing.
+Huawei Technologies Co., Ltd. (2023) Cloud computing technology. Singapore: Springer Nature.
+Microsoft Corporation (2019) The developer's guide to Azure. Redmond: Microsoft Press.
