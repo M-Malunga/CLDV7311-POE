@@ -28,6 +28,18 @@ namespace ST10296771_CLDV7311_POE.Data
                 .WithMany()
                 .HasForeignKey(br => br.CustomerId)
                 .OnDelete(DeleteBehavior.Restrict);
+            modelBuilder.Entity<Venue>().ToTable("Venue");
+            modelBuilder.Entity<Event>().ToTable("Event");
+            modelBuilder.Entity<Booking>().ToTable("Booking");
+            modelBuilder.Entity<BookingRequest>().ToTable("BookingRequest");
+            modelBuilder.Entity<Employee>().ToTable("Employee");
+
+
+
+
+
         }
+
+
     }
 }
