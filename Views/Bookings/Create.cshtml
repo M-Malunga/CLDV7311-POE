@@ -32,4 +32,31 @@
     <button type="submit" class="btn btn-primary">Create Booking</button>
 
 </form>
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            $('#VenueId, #BookingDate').on('change', function() {
+                var venueId = $('#VenueId').val();
+                var bookingDate = $('#BookingDate').val();
 
+                if (venueId && bookingDate) {
+                    $.ajax({
+                        url: '@Url.Action("CheckAvailability", "Bookings")',
+                        type: 'GET',
+                        data: { venueId: venueId, bookingDate: bookingDate },
+                        success: function(response) {
+                            if (!response.isAvailable) {
+                                $('#venueAvailabilityWarning').remove();
+                                $('#VenueId').after('<div id="venueAvailabilityWarning" class="text-danger">This venue is already booked on the selected date!</div>');
+                                $('button[type="submit"]').prop('disabled', true);
+                            } else {
+                                $('#venueAvailabilityWarning').remove();
+                                $('button[type="submit"]').prop('disabled', false);
+                            }
+                        }
+                    });
+                }
+            });
+        });
+    </script>
+}

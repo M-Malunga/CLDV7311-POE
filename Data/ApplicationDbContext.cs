@@ -23,11 +23,17 @@ namespace ST10296771_CLDV7311_POE.Data
         {
             base.OnModelCreating(modelBuilder);
 
+            modelBuilder.Entity<Booking>()
+        .HasIndex(b => new { b.VenueId, b.BookingDate })
+        .IsUnique()
+        .HasDatabaseName("IX_Booking_Venue_Date");
+
             modelBuilder.Entity<BookingRequest>()
                 .HasOne(br => br.Customer)
                 .WithMany()
                 .HasForeignKey(br => br.CustomerId)
                 .OnDelete(DeleteBehavior.Restrict);
+
             modelBuilder.Entity<Venue>().ToTable("Venue");
             modelBuilder.Entity<Event>().ToTable("Event");
             modelBuilder.Entity<Booking>().ToTable("Booking");

@@ -113,9 +113,24 @@ namespace ST10296771_CLDV7311_POE.Controllers
         {
             if (!IsEmployeeOrAdmin()) return Forbid();
 
+            // CHECK FOR ACTIVE BOOKINGS
+            var hasActiveBookings = await _context.Bookings
+                .AnyAsync(b => b.VenueId == id && b.BookingDate >= DateTime.Today);
+
+            if (hasActiveBookings)
+            {
+                TempData["ErrorMessage"] = "Cannot delete this venue because it has active bookings (today or future).";
+                return RedirectToAction(nameof(Index));
+            }
+
             var venue = await _context.Venues.FindAsync(id);
-            _context.Venues.Remove(venue);
-            await _context.SaveChangesAsync();
+            if (venue != null)
+            {
+                _context.Venues.Remove(venue);
+                await _context.SaveChangesAsync();
+                TempData["SuccessMessage"] = "Venue deleted successfully.";
+            }
+
             return RedirectToAction(nameof(Index));
         }
 
