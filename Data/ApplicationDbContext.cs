@@ -41,9 +41,7 @@ namespace ST10296771_CLDV7311_POE.Data
             modelBuilder.Entity<Employee>().ToTable("Employee");
 
 
-
-
-
+            
         }
 
 

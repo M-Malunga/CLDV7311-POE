@@ -1,52 +1,45 @@
 ﻿@model IEnumerable<ST10296771_CLDV7311_POE.Models.Event>
 
+@{
+    ViewData["Title"] = "Events";
+}
+
 <h2>Events</h2>
 
-<p>
-    <a asp-action="Create" class="btn btn-primary">Create Event</a>
-</p>
-@if (TempData["ErrorMessage"] != null)
+@if (User.IsInRole("Employee") || User.IsInRole("Admin"))
 {
-    <div class="alert alert-danger alert-dismissible fade show" role="alert">
-        @TempData["ErrorMessage"]
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-    </div>
+    <p>
+        <a asp-action="Create" class="btn btn-primary">Create New Event</a>
+    </p>
 }
 
-@if (TempData["SuccessMessage"] != null)
-{
-    <div class="alert alert-success alert-dismissible fade show" role="alert">
-        @TempData["SuccessMessage"]
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-    </div>
-}
-<table class="table">
+<table class="table table-striped">
     <thead>
         <tr>
-            <th>Event</th>
-            <th>Date</th>
+            <th>@Html.DisplayNameFor(model => model.EventName)</th>
+            <th>@Html.DisplayNameFor(model => model.EventDate)</th>
             <th>Venue</th>
-            <th>Organizer</th>
-            <th></th>
+            <th>@Html.DisplayNameFor(model => model.ExpectedAttendees)</th>
+            <th>Actions</th>
         </tr>
     </thead>
-
     <tbody>
         @foreach (var item in Model)
         {
             <tr>
-                <td>@item.EventName</td>
-                <td>@item.EventDate</td>
-                <td>@item.Venue?.VenueName</td>
-                <td>@item.OrganizerName</td>
-
+                <td>@Html.DisplayFor(modelItem => item.EventName)</td>
+                <td>@item.EventDate.ToShortDateString()</td>
+                <td>@(item.Venue?.VenueName ?? "No venue")</td>
+                <td>@Html.DisplayFor(modelItem => item.ExpectedAttendees)</td>
                 <td>
-                    <a asp-action="Edit" asp-route-id="@item.EventId">Edit</a> |
-                    <a asp-action="Details" asp-route-id="@item.EventId">Details</a> |
-                    <a asp-action="Delete" asp-route-id="@item.EventId">Delete</a>
+                    <a asp-action="Details" asp-route-id="@item.EventId" class="btn btn-info btn-sm">Details</a>
+                    @if (User.IsInRole("Employee") || User.IsInRole("Admin"))
+                    {
+                        <a asp-action="Edit" asp-route-id="@item.EventId" class="btn btn-warning btn-sm">Edit</a>
+                        <a asp-action="Delete" asp-route-id="@item.EventId" class="btn btn-danger btn-sm">Delete</a>
+                    }
                 </td>
             </tr>
         }
     </tbody>
 </table>
-

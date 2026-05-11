@@ -40,7 +40,11 @@ namespace ST10296771_CLDV7311_POE.Controllers
 
         public IActionResult Create()
         {
-            if (!IsEmployeeOrAdmin()) return Forbid();
+            if (!IsEmployeeOrAdmin())
+            {
+                TempData["ErrorMessage"] = "You do not have permission to create venues.";
+                return RedirectToAction("Index", "Home");
+            }
             return View();
         }
 
@@ -48,12 +52,17 @@ namespace ST10296771_CLDV7311_POE.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(Venue venue)
         {
-            if (!IsEmployeeOrAdmin()) return Forbid();
+            if (!IsEmployeeOrAdmin())
+            {
+                TempData["ErrorMessage"] = "You do not have permission to create venues.";
+                return RedirectToAction("Index", "Home");
+            }
 
             if (ModelState.IsValid)
             {
                 _context.Add(venue);
                 await _context.SaveChangesAsync();
+                TempData["SuccessMessage"] = "Venue created successfully.";
                 return RedirectToAction(nameof(Index));
             }
             return View(venue);
@@ -61,7 +70,12 @@ namespace ST10296771_CLDV7311_POE.Controllers
 
         public async Task<IActionResult> Edit(int? id)
         {
-            if (!IsEmployeeOrAdmin()) return Forbid();
+            if (!IsEmployeeOrAdmin())
+            {
+                TempData["ErrorMessage"] = "You do not have permission to edit venues.";
+                return RedirectToAction("Index", "Home");
+            }
+
             if (id == null) return NotFound();
 
             var venue = await _context.Venues.FindAsync(id);
@@ -73,7 +87,12 @@ namespace ST10296771_CLDV7311_POE.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(int id, Venue venue)
         {
-            if (!IsEmployeeOrAdmin()) return Forbid();
+            if (!IsEmployeeOrAdmin())
+            {
+                TempData["ErrorMessage"] = "You do not have permission to edit venues.";
+                return RedirectToAction("Index", "Home");
+            }
+
             if (id != venue.VenueId) return NotFound();
 
             if (ModelState.IsValid)
@@ -82,6 +101,7 @@ namespace ST10296771_CLDV7311_POE.Controllers
                 {
                     _context.Update(venue);
                     await _context.SaveChangesAsync();
+                    TempData["SuccessMessage"] = "Venue updated successfully.";
                 }
                 catch (DbUpdateConcurrencyException)
                 {
@@ -97,7 +117,12 @@ namespace ST10296771_CLDV7311_POE.Controllers
 
         public async Task<IActionResult> Delete(int? id)
         {
-            if (!IsEmployeeOrAdmin()) return Forbid();
+            if (!IsEmployeeOrAdmin())
+            {
+                TempData["ErrorMessage"] = "You do not have permission to delete venues.";
+                return RedirectToAction("Index", "Home");
+            }
+
             if (id == null) return NotFound();
 
             var venue = await _context.Venues
@@ -111,7 +136,11 @@ namespace ST10296771_CLDV7311_POE.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
-            if (!IsEmployeeOrAdmin()) return Forbid();
+            if (!IsEmployeeOrAdmin())
+            {
+                TempData["ErrorMessage"] = "You do not have permission to delete venues.";
+                return RedirectToAction("Index", "Home");
+            }
 
             // CHECK FOR ACTIVE BOOKINGS
             var hasActiveBookings = await _context.Bookings

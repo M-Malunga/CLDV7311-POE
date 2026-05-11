@@ -46,7 +46,7 @@ namespace ST10296771_CLDV7311_POE.Controllers
                     .Where(r => r.CustomerId == userId)
                     .OrderByDescending(r => r.EventDate)
                     .ToListAsync();
-                return View("CustomerRequests", requests);
+                return View("~/Views/BookingRequests/CustomerRequests.cshtml", requests);
             }
             else
             {
@@ -56,7 +56,7 @@ namespace ST10296771_CLDV7311_POE.Controllers
                     .OrderBy(r => r.Status == "Pending" ? 0 : 1)
                     .ThenByDescending(r => r.EventDate)
                     .ToListAsync();
-                return View("ManageRequests", requests);
+                return View("~/Views/BookingRequests/ManageRequests.cshtml", requests);
             }
         }
 

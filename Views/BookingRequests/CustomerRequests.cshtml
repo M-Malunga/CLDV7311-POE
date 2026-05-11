@@ -1,0 +1,101 @@
+﻿@model IEnumerable<ST10296771_CLDV7311_POE.Models.BookingRequest>
+
+@{
+    ViewData["Title"] = "My Booking Requests";
+}
+
+<h2>My Booking Requests</h2>
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        @TempData["SuccessMessage"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        @TempData["ErrorMessage"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+<p>
+    <a asp-action="Create" class="btn btn-primary">
+        New Booking Request
+    </a>
+</p>
+
+@if (!Model.Any())
+{
+    <div class="alert alert-info">
+        You haven't made any booking requests yet.
+        <a asp-action="Create" class="alert-link">Create your first request</a>.
+    </div>
+}
+else
+{
+    <table class="table table-striped table-hover">
+        <thead>
+            <tr>
+                <th>Event Name</th>
+                <th>Event Date</th>
+                <th>Venue</th>
+                <th>Expected Attendees</th>
+                <th>Request Date</th>
+                <th>Status</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var request in Model)
+            {
+                var statusClass = request.Status == "Pending" ? "table-warning" :
+                request.Status == "Approved" ? "table-success" :
+                request.Status == "Denied" ? "table-danger" : "";
+
+                var badgeClass = request.Status == "Approved" ? "bg-success" :
+                request.Status == "Denied" ? "bg-danger" : "bg-warning";
+
+                <tr class="@statusClass">
+                    <td>@request.EventName</td>
+                    <td>@request.EventDate.ToString("yyyy-MM-dd")</td>
+                    <td>@(request.Venue?.VenueName ?? "N/A")</td>
+                    <td>
+                        @if (request.ExpectedAttendees.HasValue)
+                        {
+                            @request.ExpectedAttendees.Value.ToString("N0")
+                            if (request.Venue != null && request.ExpectedAttendees > request.Venue.Capacity)
+                            {
+                                <span class="badge bg-warning" title="Exceeds venue capacity of @request.Venue.Capacity">⚠️</span>
+                            }
+                        }
+                        else
+                        {
+                            <span class="text-muted">Not specified</span>
+                        }
+                    </td>
+                    <td>@request.RequestDate.ToString("yyyy-MM-dd")</td>
+                    <td>
+                        <span class="badge @badgeClass">
+                            @request.Status
+                        </span>
+                    </td>
+                    <td>
+                        <a asp-action="Details" asp-route-id="@request.RequestId" class="btn btn-info btn-sm">Details</a>
+                        @if (request.Status == "Pending")
+                        {
+                            <a asp-action="Edit" asp-route-id="@request.RequestId" class="btn btn-warning btn-sm">Edit</a>
+                            <form asp-action="Decline" asp-route-id="@request.RequestId" method="post" style="display:inline;" onsubmit="return confirm('Are you sure you want to cancel this request?')">
+                                @Html.AntiForgeryToken()
+                                <button type="submit" class="btn btn-danger btn-sm">Cancel</button>
+                            </form>
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
