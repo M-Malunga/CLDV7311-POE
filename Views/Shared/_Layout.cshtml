@@ -28,6 +28,14 @@
                             <a class="nav-link" asp-controller="Venues" asp-action="Create">Add Venue</a>
                         </li>
                     }
+                    @if (User.IsInRole("Employee") || User.IsInRole("Admin"))
+                    {
+                        <li class="nav-item">
+                            <a class="nav-link" asp-area="" asp-controller="BookingManagement" asp-action="Index">
+                                <i class="bi bi-calendar-check"></i> Booking Management
+                            </a>
+                        </li>
+                    }
                     @if (Context.Session.GetString("UserRole") == "Customer")
                     {
                         <li class="nav-item">

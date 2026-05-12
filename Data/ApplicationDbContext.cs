@@ -18,6 +18,7 @@ namespace ST10296771_CLDV7311_POE.Data
         public DbSet<Event> Events { get; set; }
         public DbSet<Booking> Bookings { get; set; }
         public DbSet<BookingRequest> BookingRequests { get; set; }
+        public DbSet<BookingDetailsView> BookingDetailsViews { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

@@ -115,11 +115,13 @@ namespace ST10296771_CLDV7311_POE.Controllers
             return View(model);
         }
 
+        // GET: Register
         public IActionResult Register()
         {
             return View();
         }
 
+        // POST: Register
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Register(RegisterViewModel model)
@@ -127,18 +129,108 @@ namespace ST10296771_CLDV7311_POE.Controllers
             if (!ModelState.IsValid)
                 return View(model);
 
-            var existingUser = await _context.Users
-                .FirstOrDefaultAsync(u => u.Username == model.Username || u.Email == model.Email);
-
-            if (existingUser != null)
+            try
             {
-                if (existingUser.Username == model.Username)
-                    ModelState.AddModelError("Username", "Username already taken.");
-                if (existingUser.Email == model.Email)
-                    ModelState.AddModelError("Email", "Email already registered.");
+                // Check based on role selection
+                bool userExists = false;
 
+                if (model.Role == "Customer")
+                {
+                    userExists = await _context.Users
+                        .AnyAsync(u => u.Username == model.Username || u.Email == model.Email);
+                }
+                else if (model.Role == "Employee")
+                {
+                    userExists = await _context.Employees
+                        .AnyAsync(e => e.Username == model.Username || e.Email == model.Email);
+                }
+                else if (model.Role == "Admin")
+                {
+                    userExists = await _context.Administrators
+                        .AnyAsync(a => a.Username == model.Username || a.Email == model.Email);
+                }
+
+                if (userExists)
+                {
+                    ModelState.AddModelError("Username", "Username or Email already exists for this role");
+                    return View(model);
+                }
+
+                // Hash the password
+                var hashedPassword = _passwordHasher.HashPassword(model.Password);
+
+                // Create user based on role
+                if (model.Role == "Customer")
+                {
+                    var customer = new User
+                    {
+                        Username = model.Username,
+                        Email = model.Email,
+                        PasswordHash = hashedPassword,
+                        FirstName = model.FirstName,
+                        LastName = model.LastName
+                    };
+                    _context.Users.Add(customer);
+                    await _context.SaveChangesAsync();
+
+                    // Set session for auto-login
+                    _httpContextAccessor.HttpContext.Session.SetInt32("UserId", customer.UserId);
+                    _httpContextAccessor.HttpContext.Session.SetString("UserRole", "Customer");
+                    _httpContextAccessor.HttpContext.Session.SetString("UserName", customer.Username);
+                }
+                else if (model.Role == "Employee")
+                {
+                    var employee = new Employee
+                    {
+                        Username = model.Username,
+                        Email = model.Email,
+                        PasswordHash = hashedPassword,
+                        FirstName = model.FirstName,
+                        LastName = model.LastName
+                    };
+                    _context.Employees.Add(employee);
+                    await _context.SaveChangesAsync();
+
+                    _httpContextAccessor.HttpContext.Session.SetInt32("UserId", employee.EmployeeId);
+                    _httpContextAccessor.HttpContext.Session.SetString("UserRole", "Employee");
+                    _httpContextAccessor.HttpContext.Session.SetString("UserName", employee.Username);
+                }
+                else if (model.Role == "Admin")
+                {
+                    var admin = new Administrator
+                    {
+                        Username = model.Username,
+                        Email = model.Email,
+                        PasswordHash = hashedPassword,
+                        FirstName = model.FirstName,
+                        LastName = model.LastName
+                    };
+                    _context.Administrators.Add(admin);
+                    await _context.SaveChangesAsync();
+
+                    _httpContextAccessor.HttpContext.Session.SetInt32("UserId", admin.AdminId);
+                    _httpContextAccessor.HttpContext.Session.SetString("UserRole", "Admin");
+                    _httpContextAccessor.HttpContext.Session.SetString("UserName", admin.Username);
+                }
+
+                await _context.SaveChangesAsync();
+                _logger.LogInformation($"New {model.Role} registered: {model.Username}");
+
+                // Redirect based on role
+                if (model.Role == "Admin")
+                    return RedirectToAction("ManageCustomers", "Admin");
+                else if (model.Role == "Employee")
+                    return RedirectToAction("Index", "BookingRequests");
+                else
+                    return RedirectToAction("Index", "Home");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error during registration");
+                ModelState.AddModelError("", "An error occurred during registration. Please try again.");
                 return View(model);
             }
+        
 
             var user = await _userService.CreateUserAsync(
                 model.Username,

@@ -1,0 +1,160 @@
+﻿@model ST10296771_CLDV7311_POE.Models.BookingDetailsView
+
+@{
+    ViewData["Title"] = "Booking Details";
+}
+
+<div class="container">
+    <h2>Booking Details</h2>
+    <p class="text-muted">Complete information for Booking #@Model.BookingId</p>
+
+    <div class="row">
+        <!-- Customer Information -->
+        <div class="col-md-6 mb-4">
+            <div class="card h-100">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">👤 Customer Information</h5>
+                </div>
+                <div class="card-body">
+                    <dl class="row mb-0">
+                        <dt class="col-sm-4">Customer Name:</dt>
+                        <dd class="col-sm-8">@Model.CustomerName</dd>
+
+                        <dt class="col-sm-4">Customer Email:</dt>
+                        <dd class="col-sm-8">@Model.CustomerEmail</dd>
+
+                        <dt class="col-sm-4">Customer ID:</dt>
+                        <dd class="col-sm-8">@Model.CustomerId</dd>
+
+                        <dt class="col-sm-4">Booking Created:</dt>
+                        <dd class="col-sm-8">@Model.BookingCreatedDate.ToString("yyyy-MM-dd HH:mm")</dd>
+                    </dl>
+                </div>
+            </div>
+        </div>
+
+        <!-- Event Information -->
+        <div class="col-md-6 mb-4">
+            <div class="card h-100">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">🎉 Event Information</h5>
+                </div>
+                <div class="card-body">
+                    <dl class="row mb-0">
+                        <dt class="col-sm-4">Event Name:</dt>
+                        <dd class="col-sm-8">@Model.EventName</dd>
+
+                        <dt class="col-sm-4">Event Date:</dt>
+                        <dd class="col-sm-8">@Model.EventDate.ToString("dddd, MMMM dd, yyyy")</dd>
+
+                        <dt class="col-sm-4">Organizer:</dt>
+                        <dd class="col-sm-8">@Model.OrganizerName</dd>
+
+                        <dt class="col-sm-4">Contact:</dt>
+                        <dd class="col-sm-8">@Model.OrganizerContact</dd>
+                    </dl>
+                </div>
+            </div>
+        </div>
+
+        <!-- Venue Information -->
+        <div class="col-md-6 mb-4">
+            <div class="card h-100">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">🏢 Venue Information</h5>
+                </div>
+                <div class="card-body">
+                    <dl class="row mb-0">
+                        <dt class="col-sm-4">Venue Name:</dt>
+                        <dd class="col-sm-8">@Model.VenueName</dd>
+
+                        <dt class="col-sm-4">Location:</dt>
+                        <dd class="col-sm-8">@Model.Location</dd>
+
+                        <dt class="col-sm-4">Capacity:</dt>
+                        <dd class="col-sm-8">@Model.VenueCapacity.ToString("N0")</dd>
+
+                        <dt class="col-sm-4">Contact:</dt>
+                        <dd class="col-sm-8">@Model.VenuePhone / @Model.VenueEmail</dd>
+                    </dl>
+                </div>
+            </div>
+        </div>
+
+        <!-- Booking Metrics -->
+        <div class="col-md-6 mb-4">
+            <div class="card h-100">
+                <div class="card-header bg-warning">
+                    <h5 class="mb-0">📊 Booking Metrics</h5>
+                </div>
+                <div class="card-body">
+                    <dl class="row mb-0">
+                        <dt class="col-sm-4">Expected Attendees:</dt>
+                        <dd class="col-sm-8">@Model.ExpectedAttendees.ToString("N0")</dd>
+
+                        <dt class="col-sm-4">Capacity Utilization:</dt>
+                        <dd class="col-sm-8">
+                            <div class="progress" style="height: 25px;">
+                                <div class="progress-bar bg-@Model.CapacityUtilizationColor"
+                                     role="progressbar"
+                                     style="width: @Model.CapacityUtilizationPercent%;"
+                                     aria-valuenow="@Model.CapacityUtilizationPercent"
+                                     aria-valuemin="0"
+                                     aria-valuemax="100">
+                                    @Model.CapacityUtilizationPercent%
+                                </div>
+                            </div>
+                        </dd>
+
+                        <dt class="col-sm-4">Booking Status:</dt>
+                        <dd class="col-sm-8">
+                            <span class="badge bg-@Model.StatusBadgeClass fs-6">
+                                @Model.BookingStatus
+                            </span>
+                        </dd>
+
+                        <dt class="col-sm-4">Days Until Event:</dt>
+                        <dd class="col-sm-8">
+                            @if (Model.DaysUntilEvent == 0)
+                            {
+                                <span class="badge bg-success">Today!</span>
+                            }
+                            else if (Model.DaysUntilEvent > 0)
+                            {
+                                <span>@Model.DaysUntilEvent days</span>
+                            }
+                            else
+                            {
+                                <span class="text-muted">Event passed</span>
+                            }
+                        </dd>
+                    </dl>
+                </div>
+            </div>
+        </div>
+
+        <!-- Description -->
+        @if (!string.IsNullOrEmpty(Model.EventDescription))
+        {
+            <div class="col-12 mb-4">
+                <div class="card">
+                    <div class="card-header bg-secondary text-white">
+                        <h5 class="mb-0">📝 Event Description</h5>
+                    </div>
+                    <div class="card-body">
+                        <p class="mb-0">@Model.EventDescription</p>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+
+    <div class="mt-3">
+        <a asp-action="Index" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i> Back to Dashboard
+        </a>
+        <a asp-action="ExportToCsv" class="btn btn-success">
+            <i class="bi bi-download"></i> Export All
+        </a>
+    </div>
+</div>

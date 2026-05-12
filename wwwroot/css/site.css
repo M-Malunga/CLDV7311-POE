@@ -68,3 +68,21 @@ body {
     .dashboard-card .card-body {
         padding: 1.5rem;
     }
+
+.progress {
+    background-color: #e9ecef;
+    border-radius: 0.25rem;
+}
+
+.progress-bar {
+    transition: width 0.3s ease;
+    line-height: 20px;
+    color: white;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+.badge {
+    padding: 0.5rem 0.75rem;
+    font-weight: 500;
+}

@@ -2,6 +2,7 @@ using ST10296771_CLDV7311_POE.Data;
 using ST10296771_CLDV7311_POE.Services;
 using Microsoft.EntityFrameworkCore;
 using ST10296771_CLDV7311_POE.Config;
+using Microsoft.Extensions.Azure;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -37,6 +38,12 @@ builder.Services.AddSession(options =>
 builder.Services.AddHttpContextAccessor();
 
 builder.Services.AddResponseCaching();
+builder.Services.AddAzureClients(clientBuilder =>
+{
+    clientBuilder.AddBlobServiceClient(builder.Configuration["ConnectionStrings:AzureStorage1:blobServiceUri"]!).WithName("ConnectionStrings:AzureStorage1");
+    clientBuilder.AddQueueServiceClient(builder.Configuration["ConnectionStrings:AzureStorage1:queueServiceUri"]!).WithName("ConnectionStrings:AzureStorage1");
+    clientBuilder.AddTableServiceClient(builder.Configuration["ConnectionStrings:AzureStorage1:tableServiceUri"]!).WithName("ConnectionStrings:AzureStorage1");
+});
 
 var app = builder.Build();
 

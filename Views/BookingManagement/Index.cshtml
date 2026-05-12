@@ -1,0 +1,207 @@
+﻿@model IEnumerable<ST10296771_CLDV7311_POE.Models.BookingDetailsView>
+
+@{
+    ViewData["Title"] = "Booking Management Dashboard";
+}
+
+<div class="container-fluid">
+    <h2 class="mb-4">📋 Booking Management Dashboard</h2>
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            @TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Total Bookings</h5>
+                    <h2 class="display-4">@ViewBag.BookingCount</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Today's Events</h5>
+                    <h2 class="display-4">@ViewBag.TodayCount</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Upcoming Events</h5>
+                    <h2 class="display-4">@ViewBag.UpcomingCount</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-secondary text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Completed</h5>
+                    <h2 class="display-4">@ViewBag.CompletedCount</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Search Bar -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="get" asp-action="Index" class="row g-3">
+                <div class="col-md-8">
+                    <div class="input-group">
+                        <span class="input-group-text">
+                            <i class="bi bi-search"></i>
+                        </span>
+                        <input type="text" name="searchTerm" class="form-control"
+                               placeholder="Search by Booking ID, Event Name, Customer, or Venue..."
+                               value="@ViewBag.CurrentSearch" />
+                        <button type="submit" class="btn btn-primary">Search</button>
+                    </div>
+                </div>
+                <div class="col-md-4 text-end">
+                    <a asp-action="ExportToCsv" class="btn btn-success">
+                        <i class="bi bi-download"></i> Export to CSV
+                    </a>
+                    <a asp-action="Index" class="btn btn-secondary">
+                        <i class="bi bi-arrow-repeat"></i> Reset
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Bookings Table -->
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped table-hover">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Booking ID</th>
+                            <th>Event Name</th>
+                            <th>Event Date</th>
+                            <th>Venue</th>
+                            <th>Customer</th>
+                            <th>Expected Attendees</th>
+                            <th>Capacity Util.</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (Model.Any())
+                        {
+                            @foreach (var item in Model)
+                            {
+                                <tr>
+                                    <td>@item.BookingId</td>
+                                    <td>
+                                        <strong>@item.EventName</strong><br />
+                                        <small class="text-muted">@item.OrganizerName</small>
+                                    </td>
+                                    <td>
+                                        @item.EventDate.ToString("yyyy-MM-dd")
+                                        @if (item.DaysUntilEvent <= 7 && item.DaysUntilEvent > 0)
+                                        {
+                                            <span class="badge bg-warning ms-1">@item.DaysUntilEvent days</span>
+                                        }
+                                        else if (item.DaysUntilEvent == 0)
+                                        {
+                                            <span class="badge bg-success ms-1">Today!</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        @item.VenueName<br />
+                                        <small class="text-muted">@item.Location</small>
+                                    </td>
+                                    <td>
+                                        @item.CustomerName<br />
+                                        <small class="text-muted">@item.CustomerEmail</small>
+                                    </td>
+                                    <td>@item.ExpectedAttendees.ToString("N0")</td>
+                                    <td>
+                                        <div class="progress" style="height: 20px;">
+                                            <div class="progress-bar bg-@item.CapacityUtilizationColor"
+                                                 role="progressbar"
+                                                 style="width: @item.CapacityUtilizationPercent%;"
+                                                 aria-valuenow="@item.CapacityUtilizationPercent"
+                                                 aria-valuemin="0"
+                                                 aria-valuemax="100">
+                                                @item.CapacityUtilizationPercent%
+                                            </div>
+                                        </div>
+                                        <small>Capacity: @item.VenueCapacity</small>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-@item.StatusBadgeClass">
+                                            @item.BookingStatus
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <a asp-action="Details" asp-route-id="@item.BookingId"
+                                           class="btn btn-info btn-sm">
+                                            <i class="bi bi-eye"></i> Details
+                                        </a>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr>
+                                <td colspan="9" class="text-center">
+                                    <div class="alert alert-info m-3">
+                                        @if (!string.IsNullOrEmpty(ViewBag.CurrentSearch))
+                                        {
+                                            <span>No bookings found matching "<strong>@ViewBag.CurrentSearch</strong>"</span>
+                                        }
+                                        else
+                                        {
+                                            <span>No bookings found in the system.</span>
+                                        }
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Live search functionality
+        let searchTimeout;
+
+        $('#searchBox').on('input', function() {
+            clearTimeout(searchTimeout);
+            const term = $(this).val();
+
+            if (term.length > 2) {
+                searchTimeout = setTimeout(function() {
+                    $.ajax({
+                        url: '@Url.Action("Search", "BookingManagement")',
+                        type: 'GET',
+                        data: { term: term },
+                        success: function(data) {
+                            if (data.results && data.results.length > 0) {
+                                // Update search results display
+                                console.log('Found ' + data.results.length + ' results');
+                            }
+                        }
+                    });
+                }, 500);
+            }
+        });
+    </script>
+}
