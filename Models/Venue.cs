@@ -1,4 +1,6 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using ST10296771_CLDV7311_POE.Config;
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace ST10296771_CLDV7311_POE.Models
 {
@@ -15,7 +17,12 @@ namespace ST10296771_CLDV7311_POE.Models
         [Required]
         public int Capacity { get; set; }
 
-        public string ImageUrl { get; set; }
+        public string ImageFileName { get; set; }  
+        public string ImageContentType { get; set; }
+        [NotMapped]
+        public string ImageUrl => !string.IsNullOrEmpty(ImageFileName)
+            ? $"{AzureStorageConfig.ContainerUrl}/{ImageFileName}"
+            : "/images/default-venue.jpg";
 
         public string ContactPhone { get; set; }
 

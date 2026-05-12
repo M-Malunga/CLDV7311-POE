@@ -1,17 +1,50 @@
 ﻿@model ST10296771_CLDV7311_POE.Models.Venue
 
+@{
+    ViewData["Title"] = "Venue Details";
+}
+
 <h2>Venue Details</h2>
 
-<div>
-    <h4>@Model.VenueName</h4>
-    <p>Location: @Model.Location</p>
-    <p>Capacity: @Model.Capacity</p>
+<div class="row">
+    <div class="col-md-6">
+        @if (!string.IsNullOrEmpty(Model.ImageFileName))
+        {
+            <img src="@Model.ImageUrl" alt="@Model.VenueName" class="img-fluid rounded shadow-sm"
+                 style="max-height: 400px; width: 100%; object-fit: cover;"
+                 onerror="this.onerror=null; this.src='/images/default-venue.jpg';">
+        }
+        else
+        {
+            <img src="/images/default-venue.jpg" alt="Default Venue" class="img-fluid rounded shadow-sm"
+                 style="max-height: 400px; width: 100%; object-fit: cover;">
+        }
+    </div>
+    <div class="col-md-6">
+        <dl class="row">
+            <dt class="col-sm-4">Venue Name</dt>
+            <dd class="col-sm-8">@Model.VenueName</dd>
 
-    <img src="@Model.ImageUrl" width="300" />
+            <dt class="col-sm-4">Location</dt>
+            <dd class="col-sm-8">@Model.Location</dd>
 
-    <p>Phone: @Model.ContactPhone</p>
-    <p>Email: @Model.ContactEmail</p>
+            <dt class="col-sm-4">Capacity</dt>
+            <dd class="col-sm-8">@Model.Capacity</dd>
+
+            <dt class="col-sm-4">Contact Phone</dt>
+            <dd class="col-sm-8">@Model.ContactPhone</dd>
+
+            <dt class="col-sm-4">Contact Email</dt>
+            <dd class="col-sm-8">@Model.ContactEmail</dd>
+        </dl>
+    </div>
 </div>
 
-<a asp-action="Index">Back to List</a>
-
+<div class="mt-3">
+    @if (User.IsInRole("Employee") || User.IsInRole("Admin"))
+    {
+        <a asp-action="Edit" asp-route-id="@Model.VenueId" class="btn btn-primary">Edit</a>
+        <a asp-action="Delete" asp-route-id="@Model.VenueId" class="btn btn-danger">Delete</a>
+    }
+    <a asp-action="Index" class="btn btn-secondary">Back to List</a>
+</div>
