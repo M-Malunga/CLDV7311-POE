@@ -6,6 +6,22 @@
 
 <h2>Events</h2>
 
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        @TempData["SuccessMessage"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        @TempData["ErrorMessage"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
 @if (User.IsInRole("Employee") || User.IsInRole("Admin"))
 {
     <p>
@@ -13,33 +29,54 @@
     </p>
 }
 
-<table class="table table-striped">
-    <thead>
-        <tr>
-            <th>@Html.DisplayNameFor(model => model.EventName)</th>
-            <th>@Html.DisplayNameFor(model => model.EventDate)</th>
-            <th>Venue</th>
-            <th>@Html.DisplayNameFor(model => model.ExpectedAttendees)</th>
-            <th>Actions</th>
-        </tr>
-    </thead>
-    <tbody>
-        @foreach (var item in Model)
-        {
-            <tr>
-                <td>@Html.DisplayFor(modelItem => item.EventName)</td>
-                <td>@item.EventDate.ToShortDateString()</td>
-                <td>@(item.Venue?.VenueName ?? "No venue")</td>
-                <td>@Html.DisplayFor(modelItem => item.ExpectedAttendees)</td>
-                <td>
+<div class="row">
+    @foreach (var item in Model)
+    {
+        <div class="col-md-4 mb-4">
+            <div class="card h-100 shadow-sm">
+                @if (!string.IsNullOrEmpty(item.ImageFileName))
+                {
+                    <img src="@item.ImageUrl" class="card-img-top" alt="@item.EventName" style="height: 200px; object-fit: cover;">
+                }
+                else
+                {
+                    <img src="/images/default-event.jpg" class="card-img-top" alt="Default Event" style="height: 200px; object-fit: cover;">
+                }
+                <div class="card-body">
+                    <h5 class="card-title">@item.EventName</h5>
+                    <p class="card-text">
+                        <strong>Date:</strong> @item.EventDate.ToString("yyyy-MM-dd")<br />
+                        <strong>Venue:</strong> @(item.Venue?.VenueName ?? "Not assigned")<br />
+                        <strong>Expected Attendees:</strong> @item.ExpectedAttendees<br />
+                        <strong>Organizer:</strong> @item.OrganizerName
+                    </p>
+                    @if (!string.IsNullOrEmpty(item.Description))
+                    {
+                        <p class="card-text">
+                            <small class="text-muted">@(item.Description.Length > 100 ? item.Description.Substring(0, 100) + "..." : item.Description)</small>
+                        </p>
+                    }
+                </div>
+                <div class="card-footer bg-transparent">
                     <a asp-action="Details" asp-route-id="@item.EventId" class="btn btn-info btn-sm">Details</a>
                     @if (User.IsInRole("Employee") || User.IsInRole("Admin"))
                     {
                         <a asp-action="Edit" asp-route-id="@item.EventId" class="btn btn-warning btn-sm">Edit</a>
                         <a asp-action="Delete" asp-route-id="@item.EventId" class="btn btn-danger btn-sm">Delete</a>
                     }
-                </td>
-            </tr>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@if (!Model.Any())
+{
+    <div class="alert alert-info">
+        No events found.
+        @if (User.IsInRole("Employee") || User.IsInRole("Admin"))
+        {
+            <a asp-action="Create" class="alert-link">Create your first event</a>
         }
-    </tbody>
-</table>
+    </div>
+}

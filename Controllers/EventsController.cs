@@ -1,18 +1,25 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using ST10296771_CLDV7311_POE.Data;
 using ST10296771_CLDV7311_POE.Models;
+using ST10296771_CLDV7311_POE.Services;
 
 namespace ST10296771_CLDV7311_POE.Controllers
 {
     public class EventsController : Controller
     {
         private readonly ApplicationDbContext _context;
+        private readonly IBlobStorageService _blobStorageService;
         private readonly IHttpContextAccessor _httpContextAccessor;
 
-        public EventsController(ApplicationDbContext context, IHttpContextAccessor httpContextAccessor)
+        public EventsController(
+            ApplicationDbContext context,
+            IBlobStorageService blobStorageService,
+            IHttpContextAccessor httpContextAccessor)
         {
             _context = context;
+            _blobStorageService = blobStorageService;
             _httpContextAccessor = httpContextAccessor;
         }
 
@@ -41,7 +48,6 @@ namespace ST10296771_CLDV7311_POE.Controllers
             return View(ev);
         }
 
-        // ADD THESE NEW METHODS:
         public IActionResult Create()
         {
             if (!IsEmployeeOrAdmin())
@@ -49,12 +55,14 @@ namespace ST10296771_CLDV7311_POE.Controllers
                 TempData["ErrorMessage"] = "You do not have permission to create events.";
                 return RedirectToAction("Index", "Home");
             }
+
+            ViewBag.VenueId = new SelectList(_context.Venues, "VenueId", "VenueName");
             return View();
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create(Event eventItem)
+        public async Task<IActionResult> Create(Event eventItem, IFormFile imageFile)
         {
             if (!IsEmployeeOrAdmin())
             {
@@ -64,11 +72,21 @@ namespace ST10296771_CLDV7311_POE.Controllers
 
             if (ModelState.IsValid)
             {
+                // Handle image upload
+                if (imageFile != null && _blobStorageService.IsValidImage(imageFile))
+                {
+                    var fileName = await _blobStorageService.UploadImageAsync(imageFile, imageFile.FileName);
+                    eventItem.ImageFileName = fileName;
+                    eventItem.ImageContentType = imageFile.ContentType;
+                }
+
                 _context.Add(eventItem);
                 await _context.SaveChangesAsync();
                 TempData["SuccessMessage"] = "Event created successfully.";
                 return RedirectToAction(nameof(Index));
             }
+
+            ViewBag.VenueId = new SelectList(_context.Venues, "VenueId", "VenueName", eventItem.VenueId);
             return View(eventItem);
         }
 
@@ -85,12 +103,13 @@ namespace ST10296771_CLDV7311_POE.Controllers
             var eventItem = await _context.Events.FindAsync(id);
             if (eventItem == null) return NotFound();
 
+            ViewBag.VenueId = new SelectList(_context.Venues, "VenueId", "VenueName", eventItem.VenueId);
             return View(eventItem);
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, Event eventItem)
+        public async Task<IActionResult> Edit(int id, Event eventItem, IFormFile imageFile)
         {
             if (!IsEmployeeOrAdmin())
             {
@@ -104,7 +123,31 @@ namespace ST10296771_CLDV7311_POE.Controllers
             {
                 try
                 {
-                    _context.Update(eventItem);
+                    var existingEvent = await _context.Events.FindAsync(id);
+                    if (existingEvent == null) return NotFound();
+
+                    // Handle image update
+                    if (imageFile != null && _blobStorageService.IsValidImage(imageFile))
+                    {
+                        // Delete old image if exists
+                        if (!string.IsNullOrEmpty(existingEvent.ImageFileName))
+                        {
+                            await _blobStorageService.DeleteImageAsync(existingEvent.ImageFileName);
+                        }
+
+                        // Upload new image
+                        var fileName = await _blobStorageService.UploadImageAsync(imageFile, imageFile.FileName);
+                        eventItem.ImageFileName = fileName;
+                        eventItem.ImageContentType = imageFile.ContentType;
+                    }
+                    else
+                    {
+                        // Keep existing image
+                        eventItem.ImageFileName = existingEvent.ImageFileName;
+                        eventItem.ImageContentType = existingEvent.ImageContentType;
+                    }
+
+                    _context.Entry(existingEvent).CurrentValues.SetValues(eventItem);
                     await _context.SaveChangesAsync();
                     TempData["SuccessMessage"] = "Event updated successfully.";
                 }
@@ -117,6 +160,8 @@ namespace ST10296771_CLDV7311_POE.Controllers
                 }
                 return RedirectToAction(nameof(Index));
             }
+
+            ViewBag.VenueId = new SelectList(_context.Venues, "VenueId", "VenueName", eventItem.VenueId);
             return View(eventItem);
         }
 
@@ -162,6 +207,12 @@ namespace ST10296771_CLDV7311_POE.Controllers
             var eventItem = await _context.Events.FindAsync(id);
             if (eventItem != null)
             {
+                // Delete image from Azure Blob Storage
+                if (!string.IsNullOrEmpty(eventItem.ImageFileName))
+                {
+                    await _blobStorageService.DeleteImageAsync(eventItem.ImageFileName);
+                }
+
                 _context.Events.Remove(eventItem);
                 await _context.SaveChangesAsync();
                 TempData["SuccessMessage"] = "Event deleted successfully.";
