@@ -1,13 +1,9 @@
 using ST10296771_CLDV7311_POE.Data;
 using ST10296771_CLDV7311_POE.Services;
 using Microsoft.EntityFrameworkCore;
-using ST10296771_CLDV7311_POE.Config;
-
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddScoped<IBlobStorageService, BlobStorageService>();
-builder.Services.Configure<AzureStorageConfig>(builder.Configuration.GetSection("AzureStorage"));
 builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
 builder.Logging.AddDebug();

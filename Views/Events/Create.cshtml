@@ -6,71 +6,56 @@
 
 <h2>Create Event</h2>
 
-<form asp-action="Create" enctype="multipart/form-data">
+<form asp-action="Create">
     <div asp-validation-summary="ModelOnly" class="text-danger"></div>
 
-    <div class="row">
-        <div class="col-md-6">
-            <div class="form-group mb-3">
-                <label asp-for="EventName" class="control-label"></label>
-                <input asp-for="EventName" class="form-control" />
-                <span asp-validation-for="EventName" class="text-danger"></span>
-            </div>
-
-            <div class="form-group mb-3">
-                <label asp-for="EventDate" class="control-label"></label>
-                <input asp-for="EventDate" class="form-control" type="date" />
-                <span asp-validation-for="EventDate" class="text-danger"></span>
-            </div>
-
-            <div class="form-group mb-3">
-                <label asp-for="VenueId" class="control-label"></label>
-                <select asp-for="VenueId" class="form-control" asp-items="ViewBag.VenueId">
-                    <option value="">-- Select Venue --</option>
-                </select>
-                <span asp-validation-for="VenueId" class="text-danger"></span>
-            </div>
-
-            <div class="form-group mb-3">
-                <label asp-for="ExpectedAttendees" class="control-label"></label>
-                <input asp-for="ExpectedAttendees" class="form-control" />
-                <span asp-validation-for="ExpectedAttendees" class="text-danger"></span>
-            </div>
-        </div>
-
-        <div class="col-md-6">
-            <div class="form-group mb-3">
-                <label asp-for="OrganizerName" class="control-label"></label>
-                <input asp-for="OrganizerName" class="form-control" />
-                <span asp-validation-for="OrganizerName" class="text-danger"></span>
-            </div>
-
-            <div class="form-group mb-3">
-                <label asp-for="OrganizerContact" class="control-label"></label>
-                <input asp-for="OrganizerContact" class="form-control" />
-                <span asp-validation-for="OrganizerContact" class="text-danger"></span>
-            </div>
-
-            <div class="form-group mb-3">
-                <label for="imageFile" class="control-label">Event Image</label>
-                <input type="file" name="imageFile" class="form-control" accept="image/*" />
-                <small class="text-muted">Allowed formats: JPG, PNG, GIF (Max 5MB)</small>
-                <span asp-validation-for="ImageFileName" class="text-danger"></span>
-            </div>
-        </div>
+    <div class="form-group">
+        <label asp-for="EventName" class="control-label"></label>
+        <input asp-for="EventName" class="form-control" />
+        <span asp-validation-for="EventName" class="text-danger"></span>
     </div>
 
-    <div class="form-group mb-3">
+    <div class="form-group">
+        <label asp-for="EventDate" class="control-label"></label>
+        <input asp-for="EventDate" class="form-control" type="date" />
+        <span asp-validation-for="EventDate" class="text-danger"></span>
+    </div>
+
+    <div class="form-group">
         <label asp-for="Description" class="control-label"></label>
-        <textarea asp-for="Description" class="form-control" rows="4"></textarea>
+        <textarea asp-for="Description" class="form-control"></textarea>
         <span asp-validation-for="Description" class="text-danger"></span>
     </div>
 
-    <br />
     <div class="form-group">
-        <button type="submit" class="btn btn-primary">Create Event</button>
-        <a asp-action="Index" class="btn btn-secondary">Back to List</a>
+        <label asp-for="VenueId" class="control-label"></label>
+        <select asp-for="VenueId" class="form-control" asp-items="ViewBag.VenueId">
+            <option value="">-- Select Venue --</option>
+        </select>
+        <span asp-validation-for="VenueId" class="text-danger"></span>
     </div>
+
+    <div class="form-group">
+        <label asp-for="ExpectedAttendees" class="control-label"></label>
+        <input asp-for="ExpectedAttendees" class="form-control" />
+        <span asp-validation-for="ExpectedAttendees" class="text-danger"></span>
+    </div>
+
+    <div class="form-group">
+        <label asp-for="OrganizerName" class="control-label"></label>
+        <input asp-for="OrganizerName" class="form-control" />
+        <span asp-validation-for="OrganizerName" class="text-danger"></span>
+    </div>
+
+    <div class="form-group">
+        <label asp-for="OrganizerContact" class="control-label"></label>
+        <input asp-for="OrganizerContact" class="form-control" />
+        <span asp-validation-for="OrganizerContact" class="text-danger"></span>
+    </div>
+
+    <br />
+    <button type="submit" class="btn btn-primary">Create</button>
+    <a asp-action="Index" class="btn btn-secondary">Back to List</a>
 </form>
 
 @section Scripts {

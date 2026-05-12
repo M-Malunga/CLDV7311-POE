@@ -194,14 +194,6 @@ namespace ST10296771_CLDV7311_POE.Migrations
                     b.Property<int>("ExpectedAttendees")
                         .HasColumnType("int");
 
-                    b.Property<string>("ImageContentType")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("ImageFileName")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<string>("OrganizerContact")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -277,11 +269,7 @@ namespace ST10296771_CLDV7311_POE.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("ImageContentType")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("ImageFileName")
+                    b.Property<string>("ImageUrl")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
