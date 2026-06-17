@@ -30,7 +30,30 @@ namespace ST10296771_CLDV7311_POE.Controllers
             return role == "Employee" || role == "Admin";
         }
 
-        // GET: BookingManagement/AdvancedSearch
+        // GET: BookingManagement/AdvancedSearchView (Initial page load)
+        public async Task<IActionResult> AdvancedSearchView()
+        {
+            if (!IsEmployeeOrAdmin())
+            {
+                TempData["ErrorMessage"] = "You do not have permission to view this page.";
+                return RedirectToAction("Index", "Home");
+            }
+
+            ViewBag.EventTypes = await _context.EventTypes
+                .Where(et => et.IsActive)
+                .OrderBy(et => et.DisplayOrder)
+                .ToListAsync();
+
+            // Return empty list with search model in ViewBag
+            ViewBag.SearchModel = new AdvancedBookingSearchViewModel();
+            ViewBag.TotalCount = 0;
+
+            // Use the existing AdvancedSearch.cshtml view
+            return View("AdvancedSearch", new List<Booking>());
+        }
+
+        // POST: BookingManagement/AdvancedSearch (Search results)
+        [HttpGet]
         public async Task<IActionResult> AdvancedSearch(AdvancedBookingSearchViewModel searchModel)
         {
             if (!IsEmployeeOrAdmin())
@@ -41,7 +64,6 @@ namespace ST10296771_CLDV7311_POE.Controllers
 
             try
             {
-                // Start with base query
                 var query = _context.Bookings
                     .Include(b => b.Event)
                         .ThenInclude(e => e.EventType)
@@ -61,13 +83,11 @@ namespace ST10296771_CLDV7311_POE.Controllers
                     );
                 }
 
-                // Filter by Event Type
                 if (searchModel.EventTypeId.HasValue && searchModel.EventTypeId > 0)
                 {
                     query = query.Where(b => b.Event != null && b.Event.EventTypeId == searchModel.EventTypeId.Value);
                 }
 
-                // Filter by Venue Availability
                 if (!string.IsNullOrEmpty(searchModel.VenueAvailability))
                 {
                     if (searchModel.VenueAvailability == "Available")
@@ -80,7 +100,6 @@ namespace ST10296771_CLDV7311_POE.Controllers
                     }
                 }
 
-                // Filter by Date Range
                 if (searchModel.DateFrom.HasValue)
                 {
                     query = query.Where(b => b.Event != null && b.Event.EventDate >= searchModel.DateFrom.Value);
@@ -90,7 +109,6 @@ namespace ST10296771_CLDV7311_POE.Controllers
                     query = query.Where(b => b.Event != null && b.Event.EventDate <= searchModel.DateTo.Value);
                 }
 
-                // Filter by Capacity
                 if (searchModel.MinCapacity.HasValue)
                 {
                     query = query.Where(b => b.Event != null && b.Event.ExpectedAttendees >= searchModel.MinCapacity.Value);
@@ -100,7 +118,6 @@ namespace ST10296771_CLDV7311_POE.Controllers
                     query = query.Where(b => b.Event != null && b.Event.ExpectedAttendees <= searchModel.MaxCapacity.Value);
                 }
 
-                // Filter by Venue amenities
                 if (searchModel.IsIndoor.HasValue)
                 {
                     query = query.Where(b => b.Venue != null && b.Venue.IsIndoor == searchModel.IsIndoor.Value);
@@ -114,7 +131,6 @@ namespace ST10296771_CLDV7311_POE.Controllers
                     query = query.Where(b => b.Venue != null && b.Venue.IsWheelchairAccessible == searchModel.IsWheelchairAccessible.Value);
                 }
 
-                // Filter by Status
                 if (!string.IsNullOrEmpty(searchModel.Status))
                 {
                     var today = DateTime.Today;
@@ -144,62 +160,28 @@ namespace ST10296771_CLDV7311_POE.Controllers
 
                 var bookings = await query.ToListAsync();
 
-                // Get filter data for dropdowns
                 ViewBag.EventTypes = await _context.EventTypes
                     .Where(et => et.IsActive)
                     .OrderBy(et => et.DisplayOrder)
                     .ToListAsync();
 
-                ViewBag.CurrentSearch = searchModel;
+                ViewBag.SearchModel = searchModel;
                 ViewBag.TotalCount = bookings.Count;
 
-                return View(bookings);
+                return View("AdvancedSearch", bookings);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error in advanced search");
                 TempData["ErrorMessage"] = "Error performing search. Please try again.";
                 ViewBag.EventTypes = await _context.EventTypes.ToListAsync();
-                return View(new List<Booking>());
+                ViewBag.SearchModel = searchModel;
+                ViewBag.TotalCount = 0;
+                return View("AdvancedSearch", new List<Booking>());
             }
         }
 
-        // GET: BookingManagement/AdvancedSearch (for initial page load)
-        public async Task<IActionResult> AdvancedSearchView()
-        {
-            if (!IsEmployeeOrAdmin())
-            {
-                TempData["ErrorMessage"] = "You do not have permission to view this page.";
-                return RedirectToAction("Index", "Home");
-            }
-
-            ViewBag.EventTypes = await _context.EventTypes
-                .Where(et => et.IsActive)
-                .OrderBy(et => et.DisplayOrder)
-                .ToListAsync();
-
-            return View("AdvancedSearch", new AdvancedBookingSearchViewModel());
-        }
-
-        // GET: BookingManagement/GetFilterOptions (AJAX for dynamic filters)
-        [HttpGet]
-        public async Task<IActionResult> GetFilterOptions()
-        {
-            var eventTypes = await _context.EventTypes
-                .Where(et => et.IsActive)
-                .Select(et => new { et.EventTypeId, et.CategoryName, et.IconClass })
-                .ToListAsync();
-
-            var venueAmenities = new
-            {
-                Indoor = await _context.Venues.Select(v => v.IsIndoor).Distinct().ToListAsync(),
-                Parking = await _context.Venues.Select(v => v.HasParking).Distinct().ToListAsync(),
-                Wheelchair = await _context.Venues.Select(v => v.IsWheelchairAccessible).Distinct().ToListAsync()
-            };
-
-            return Json(new { eventTypes, venueAmenities });
-        }
-
+        // GET: BookingManagement/ExportFilteredResults
         [HttpGet]
         public async Task<IActionResult> ExportFilteredResults(string searchTerm, int? eventTypeId, DateTime? dateFrom, DateTime? dateTo)
         {
@@ -237,7 +219,6 @@ namespace ST10296771_CLDV7311_POE.Controllers
 
             var bookings = await query.ToListAsync();
 
-            // Generate CSV
             var csv = new System.Text.StringBuilder();
             csv.AppendLine("Booking ID,Event Name,Event Type,Event Date,Venue,Venue Available,Customer,Booking Date,Status");
 
