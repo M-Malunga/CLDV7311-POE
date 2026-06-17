@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using ST10296771_CLDV7311_POE.Data;
 using ST10296771_CLDV7311_POE.Models;
+using System;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -29,9 +30,9 @@ namespace ST10296771_CLDV7311_POE.Controllers
             return role == "Employee" || role == "Admin";
         }
 
-        public async Task<IActionResult> Index(string searchTerm = null)
+        // GET: BookingManagement/AdvancedSearch
+        public async Task<IActionResult> AdvancedSearch(AdvancedBookingSearchViewModel searchModel)
         {
-            // Check authorization
             if (!IsEmployeeOrAdmin())
             {
                 TempData["ErrorMessage"] = "You do not have permission to view this page.";
@@ -40,115 +41,216 @@ namespace ST10296771_CLDV7311_POE.Controllers
 
             try
             {
-                IQueryable<BookingDetailsView> query = _context.BookingDetailsViews;
+                // Start with base query
+                var query = _context.Bookings
+                    .Include(b => b.Event)
+                        .ThenInclude(e => e.EventType)
+                    .Include(b => b.Venue)
+                    .Include(b => b.User)
+                    .AsQueryable();
 
-                // Apply search filter
-                if (!string.IsNullOrWhiteSpace(searchTerm))
+                // Apply filters
+                if (!string.IsNullOrEmpty(searchModel.SearchTerm))
                 {
-                    searchTerm = searchTerm.Trim();
+                    var term = searchModel.SearchTerm.Trim();
                     query = query.Where(b =>
-                        b.BookingId.ToString().Contains(searchTerm) ||
-                        b.EventName.Contains(searchTerm) ||
-                        b.CustomerName.Contains(searchTerm) ||
-                        b.VenueName.Contains(searchTerm)
+                        b.BookingId.ToString().Contains(term) ||
+                        (b.Event != null && b.Event.EventName.Contains(term)) ||
+                        (b.Venue != null && b.Venue.VenueName.Contains(term)) ||
+                        (b.User != null && b.User.Username.Contains(term))
                     );
                 }
 
-                // Order by upcoming events first
-                var bookings = await query
-                    .OrderBy(b => b.BookingStatus == "Upcoming" ? 0 : 1)
-                    .ThenBy(b => b.EventDate)
+                // Filter by Event Type
+                if (searchModel.EventTypeId.HasValue && searchModel.EventTypeId > 0)
+                {
+                    query = query.Where(b => b.Event != null && b.Event.EventTypeId == searchModel.EventTypeId.Value);
+                }
+
+                // Filter by Venue Availability
+                if (!string.IsNullOrEmpty(searchModel.VenueAvailability))
+                {
+                    if (searchModel.VenueAvailability == "Available")
+                    {
+                        query = query.Where(b => b.Venue != null && b.Venue.IsAvailable == true);
+                    }
+                    else if (searchModel.VenueAvailability == "Unavailable")
+                    {
+                        query = query.Where(b => b.Venue != null && b.Venue.IsAvailable == false);
+                    }
+                }
+
+                // Filter by Date Range
+                if (searchModel.DateFrom.HasValue)
+                {
+                    query = query.Where(b => b.Event != null && b.Event.EventDate >= searchModel.DateFrom.Value);
+                }
+                if (searchModel.DateTo.HasValue)
+                {
+                    query = query.Where(b => b.Event != null && b.Event.EventDate <= searchModel.DateTo.Value);
+                }
+
+                // Filter by Capacity
+                if (searchModel.MinCapacity.HasValue)
+                {
+                    query = query.Where(b => b.Event != null && b.Event.ExpectedAttendees >= searchModel.MinCapacity.Value);
+                }
+                if (searchModel.MaxCapacity.HasValue)
+                {
+                    query = query.Where(b => b.Event != null && b.Event.ExpectedAttendees <= searchModel.MaxCapacity.Value);
+                }
+
+                // Filter by Venue amenities
+                if (searchModel.IsIndoor.HasValue)
+                {
+                    query = query.Where(b => b.Venue != null && b.Venue.IsIndoor == searchModel.IsIndoor.Value);
+                }
+                if (searchModel.HasParking.HasValue)
+                {
+                    query = query.Where(b => b.Venue != null && b.Venue.HasParking == searchModel.HasParking.Value);
+                }
+                if (searchModel.IsWheelchairAccessible.HasValue)
+                {
+                    query = query.Where(b => b.Venue != null && b.Venue.IsWheelchairAccessible == searchModel.IsWheelchairAccessible.Value);
+                }
+
+                // Filter by Status
+                if (!string.IsNullOrEmpty(searchModel.Status))
+                {
+                    var today = DateTime.Today;
+                    switch (searchModel.Status.ToLower())
+                    {
+                        case "upcoming":
+                            query = query.Where(b => b.Event != null && b.Event.EventDate > today);
+                            break;
+                        case "today":
+                            query = query.Where(b => b.Event != null && b.Event.EventDate.Date == today);
+                            break;
+                        case "past":
+                            query = query.Where(b => b.Event != null && b.Event.EventDate < today);
+                            break;
+                    }
+                }
+
+                // Apply sorting
+                query = searchModel.SortBy?.ToLower() switch
+                {
+                    "eventdate" => query.OrderBy(b => b.Event != null ? b.Event.EventDate : DateTime.MaxValue),
+                    "eventdatedesc" => query.OrderByDescending(b => b.Event != null ? b.Event.EventDate : DateTime.MinValue),
+                    "venue" => query.OrderBy(b => b.Venue != null ? b.Venue.VenueName : ""),
+                    "capacity" => query.OrderByDescending(b => b.Event != null ? b.Event.ExpectedAttendees : 0),
+                    _ => query.OrderByDescending(b => b.BookingDate)
+                };
+
+                var bookings = await query.ToListAsync();
+
+                // Get filter data for dropdowns
+                ViewBag.EventTypes = await _context.EventTypes
+                    .Where(et => et.IsActive)
+                    .OrderBy(et => et.DisplayOrder)
                     .ToListAsync();
 
-                ViewBag.CurrentSearch = searchTerm;
-                ViewBag.BookingCount = bookings.Count;
-
-                // Statistics for dashboard
-                ViewBag.UpcomingCount = bookings.Count(b => b.BookingStatus == "Upcoming");
-                ViewBag.TodayCount = bookings.Count(b => b.BookingStatus == "Today");
-                ViewBag.CompletedCount = bookings.Count(b => b.BookingStatus == "Completed");
+                ViewBag.CurrentSearch = searchModel;
+                ViewBag.TotalCount = bookings.Count;
 
                 return View(bookings);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error loading booking management view");
-                TempData["ErrorMessage"] = "Error loading bookings. Please try again.";
-                return View(new List<BookingDetailsView>());
+                _logger.LogError(ex, "Error in advanced search");
+                TempData["ErrorMessage"] = "Error performing search. Please try again.";
+                ViewBag.EventTypes = await _context.EventTypes.ToListAsync();
+                return View(new List<Booking>());
             }
         }
 
-        [HttpGet]
-        public async Task<IActionResult> Search(string term)
-        {
-            if (!IsEmployeeOrAdmin())
-                return Json(new { error = "Unauthorized" });
-
-            if (string.IsNullOrWhiteSpace(term))
-                return Json(new { results = new List<object>() });
-
-            var results = await _context.BookingDetailsViews
-                .Where(b =>
-                    b.BookingId.ToString().Contains(term) ||
-                    b.EventName.Contains(term) ||
-                    b.CustomerName.Contains(term))
-                .Take(10)
-                .Select(b => new
-                {
-                    b.BookingId,
-                    b.EventName,
-                    b.CustomerName,
-                    b.EventDate,
-                    b.BookingStatus
-                })
-                .ToListAsync();
-
-            return Json(new { results });
-        }
-
-        public async Task<IActionResult> Details(int id)
+        // GET: BookingManagement/AdvancedSearch (for initial page load)
+        public async Task<IActionResult> AdvancedSearchView()
         {
             if (!IsEmployeeOrAdmin())
             {
-                TempData["ErrorMessage"] = "Unauthorized access.";
+                TempData["ErrorMessage"] = "You do not have permission to view this page.";
                 return RedirectToAction("Index", "Home");
             }
 
-            var booking = await _context.BookingDetailsViews
-                .FirstOrDefaultAsync(b => b.BookingId == id);
+            ViewBag.EventTypes = await _context.EventTypes
+                .Where(et => et.IsActive)
+                .OrderBy(et => et.DisplayOrder)
+                .ToListAsync();
 
-            if (booking == null)
-            {
-                TempData["ErrorMessage"] = "Booking not found.";
-                return RedirectToAction(nameof(Index));
-            }
-
-            return View(booking);
+            return View("AdvancedSearch", new AdvancedBookingSearchViewModel());
         }
 
-        [HttpPost]
-        public async Task<IActionResult> ExportToCsv()
+        // GET: BookingManagement/GetFilterOptions (AJAX for dynamic filters)
+        [HttpGet]
+        public async Task<IActionResult> GetFilterOptions()
+        {
+            var eventTypes = await _context.EventTypes
+                .Where(et => et.IsActive)
+                .Select(et => new { et.EventTypeId, et.CategoryName, et.IconClass })
+                .ToListAsync();
+
+            var venueAmenities = new
+            {
+                Indoor = await _context.Venues.Select(v => v.IsIndoor).Distinct().ToListAsync(),
+                Parking = await _context.Venues.Select(v => v.HasParking).Distinct().ToListAsync(),
+                Wheelchair = await _context.Venues.Select(v => v.IsWheelchairAccessible).Distinct().ToListAsync()
+            };
+
+            return Json(new { eventTypes, venueAmenities });
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> ExportFilteredResults(string searchTerm, int? eventTypeId, DateTime? dateFrom, DateTime? dateTo)
         {
             if (!IsEmployeeOrAdmin())
                 return Forbid();
 
-            var bookings = await _context.BookingDetailsViews
-                .OrderBy(b => b.EventDate)
-                .ToListAsync();
+            var query = _context.Bookings
+                .Include(b => b.Event)
+                    .ThenInclude(e => e.EventType)
+                .Include(b => b.Venue)
+                .Include(b => b.User)
+                .AsQueryable();
 
+            if (!string.IsNullOrEmpty(searchTerm))
+            {
+                query = query.Where(b =>
+                    b.BookingId.ToString().Contains(searchTerm) ||
+                    (b.Event != null && b.Event.EventName.Contains(searchTerm)));
+            }
+
+            if (eventTypeId.HasValue && eventTypeId > 0)
+            {
+                query = query.Where(b => b.Event != null && b.Event.EventTypeId == eventTypeId);
+            }
+
+            if (dateFrom.HasValue)
+            {
+                query = query.Where(b => b.Event != null && b.Event.EventDate >= dateFrom.Value);
+            }
+
+            if (dateTo.HasValue)
+            {
+                query = query.Where(b => b.Event != null && b.Event.EventDate <= dateTo.Value);
+            }
+
+            var bookings = await query.ToListAsync();
+
+            // Generate CSV
             var csv = new System.Text.StringBuilder();
+            csv.AppendLine("Booking ID,Event Name,Event Type,Event Date,Venue,Venue Available,Customer,Booking Date,Status");
 
-            // Add headers
-            csv.AppendLine("Booking ID,Event Name,Event Date,Venue,Customer,Status,Expected Attendees,Venue Capacity,Capacity %");
-
-            // Add rows
             foreach (var b in bookings)
             {
-                csv.AppendLine($"{b.BookingId},{b.EventName},{b.EventDate:yyyy-MM-dd},{b.VenueName},{b.CustomerName},{b.BookingStatus},{b.ExpectedAttendees},{b.VenueCapacity},{b.CapacityUtilizationPercent}");
+                var status = b.Event != null && b.Event.EventDate < DateTime.Today ? "Completed" :
+                            (b.Event != null && b.Event.EventDate.Date == DateTime.Today) ? "Today" : "Upcoming";
+
+                csv.AppendLine($"{b.BookingId},\"{b.Event?.EventName}\",\"{b.Event?.EventType?.CategoryName}\",{b.Event?.EventDate:yyyy-MM-dd},\"{b.Venue?.VenueName}\",{b.Venue?.IsAvailable},\"{b.User?.Username}\",{b.BookingDate:yyyy-MM-dd},{status}");
             }
 
             var bytes = System.Text.Encoding.UTF8.GetBytes(csv.ToString());
-            return File(bytes, "text/csv", $"Bookings_{DateTime.Now:yyyyMMdd_HHmmss}.csv");
+            return File(bytes, "text/csv", $"BookingReport_{DateTime.Now:yyyyMMdd_HHmmss}.csv");
         }
     }
 }

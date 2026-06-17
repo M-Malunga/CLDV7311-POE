@@ -14,8 +14,6 @@ namespace ST10296771_CLDV7311_POE.Controllers
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly ILogger<VenuesController> _logger;
 
-
-
         public VenuesController(
             ApplicationDbContext context,
             IBlobStorageService blobStorageService,
@@ -27,8 +25,7 @@ namespace ST10296771_CLDV7311_POE.Controllers
             _blobStorageService = blobStorageService;
             _webHostEnvironment = webHostEnvironment;
             _httpContextAccessor = httpContextAccessor;
-            _logger = logger; 
-
+            _logger = logger;
         }
 
         private bool IsEmployeeOrAdmin()
@@ -50,8 +47,13 @@ namespace ST10296771_CLDV7311_POE.Controllers
                         Capacity = v.Capacity,
                         ContactPhone = v.ContactPhone ?? "Not Provided",
                         ContactEmail = v.ContactEmail ?? "Not Provided",
-                        ImageFileName = v.ImageFileName ?? string.Empty,
-                        ImageContentType = v.ImageContentType ?? string.Empty
+                        ImageFileName = v.ImageFileName ?? "",
+                        ImageContentType = v.ImageContentType ?? "",
+                        IsAvailable = v.IsAvailable,
+                        OperatingHours = v.OperatingHours ?? "Not specified",
+                        IsIndoor = v.IsIndoor,
+                        HasParking = v.HasParking,
+                        IsWheelchairAccessible = v.IsWheelchairAccessible
                     })
                     .ToListAsync();
 
@@ -60,36 +62,56 @@ namespace ST10296771_CLDV7311_POE.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error loading venues");
-                TempData["ErrorMessage"] = "Unable to load venues. Please try again later.";
+                TempData["ErrorMessage"] = "Error loading venues. Please try again.";
                 return View(new List<Venue>());
             }
         }
 
         public async Task<IActionResult> Details(int? id)
         {
+            if (id == null)
+            {
+                return NotFound();
+            }
+
             try
             {
-                if (id == null) return NotFound();
-
+                // Use projection to handle NULL values safely
                 var venue = await _context.Venues
-                    .FirstOrDefaultAsync(v => v.VenueId == id);
+                    .Where(v => v.VenueId == id)
+                    .Select(v => new Venue
+                    {
+                        VenueId = v.VenueId,
+                        VenueName = v.VenueName ?? "Unknown Venue",
+                        Location = v.Location ?? "Unknown Location",
+                        Capacity = v.Capacity,
+                        ContactPhone = v.ContactPhone ?? "Not Provided",
+                        ContactEmail = v.ContactEmail ?? "Not Provided",
+                        ImageFileName = v.ImageFileName ?? "",
+                        ImageContentType = v.ImageContentType ?? "",
+                        IsAvailable = v.IsAvailable,
+                        AvailableFrom = v.AvailableFrom,
+                        AvailableTo = v.AvailableTo,
+                        OperatingHours = v.OperatingHours ?? "9:00 AM - 9:00 PM",
+                        DaysAvailable = v.DaysAvailable ?? "Monday - Sunday",
+                        Amenities = v.Amenities ?? "No amenities listed",
+                        IsIndoor = v.IsIndoor,
+                        HasParking = v.HasParking,
+                        IsWheelchairAccessible = v.IsWheelchairAccessible
+                    })
+                    .FirstOrDefaultAsync();
 
-                if (venue == null) return NotFound();
-
-                // Safely handle NULL values
-                if (venue.VenueName == null) venue.VenueName = "Unknown Venue";
-                if (venue.Location == null) venue.Location = "Unknown Location";
-                if (venue.ContactPhone == null) venue.ContactPhone = "Not Provided";
-                if (venue.ContactEmail == null) venue.ContactEmail = "Not Provided";
-                if (venue.ImageFileName == null) venue.ImageFileName = string.Empty;
-                if (venue.ImageContentType == null) venue.ImageContentType = string.Empty;
+                if (venue == null)
+                {
+                    return NotFound();
+                }
 
                 return View(venue);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error loading venue details");
-                TempData["ErrorMessage"] = "Unable to load venue details.";
+                _logger.LogError(ex, $"Error loading venue details for ID: {id}");
+                TempData["ErrorMessage"] = "Unable to load venue details. Please try again.";
                 return RedirectToAction(nameof(Index));
             }
         }
@@ -131,6 +153,15 @@ namespace ST10296771_CLDV7311_POE.Controllers
                     if (string.IsNullOrEmpty(venue.Location)) venue.Location = "Unknown Location";
                     if (string.IsNullOrEmpty(venue.ContactPhone)) venue.ContactPhone = "Not Provided";
                     if (string.IsNullOrEmpty(venue.ContactEmail)) venue.ContactEmail = "Not Provided";
+                    if (string.IsNullOrEmpty(venue.OperatingHours)) venue.OperatingHours = "9:00 AM - 9:00 PM";
+                    if (string.IsNullOrEmpty(venue.DaysAvailable)) venue.DaysAvailable = "Monday,Tuesday,Wednesday,Thursday,Friday,Saturday,Sunday";
+                    if (string.IsNullOrEmpty(venue.Amenities)) venue.Amenities = "";
+
+                    // Set defaults for boolean fields
+                    venue.IsAvailable = true;
+                    venue.IsIndoor = true;
+                    venue.HasParking = true;
+                    venue.IsWheelchairAccessible = true;
 
                     _context.Add(venue);
                     await _context.SaveChangesAsync();
@@ -184,20 +215,16 @@ namespace ST10296771_CLDV7311_POE.Controllers
                     // Handle image update
                     if (imageFile != null && _blobStorageService.IsValidImage(imageFile))
                     {
-                        // Delete old image if exists
                         if (!string.IsNullOrEmpty(existingVenue.ImageFileName))
                         {
                             await _blobStorageService.DeleteImageAsync(existingVenue.ImageFileName);
                         }
-
-                        // Upload new image
                         var fileName = await _blobStorageService.UploadImageAsync(imageFile, imageFile.FileName);
                         venue.ImageFileName = fileName;
                         venue.ImageContentType = imageFile.ContentType;
                     }
                     else
                     {
-                        // Keep existing image
                         venue.ImageFileName = existingVenue.ImageFileName;
                         venue.ImageContentType = existingVenue.ImageContentType;
                     }
@@ -207,6 +234,8 @@ namespace ST10296771_CLDV7311_POE.Controllers
                     if (string.IsNullOrEmpty(venue.Location)) venue.Location = "Unknown Location";
                     if (string.IsNullOrEmpty(venue.ContactPhone)) venue.ContactPhone = "Not Provided";
                     if (string.IsNullOrEmpty(venue.ContactEmail)) venue.ContactEmail = "Not Provided";
+                    if (string.IsNullOrEmpty(venue.OperatingHours)) venue.OperatingHours = "9:00 AM - 9:00 PM";
+                    if (string.IsNullOrEmpty(venue.DaysAvailable)) venue.DaysAvailable = "Monday,Tuesday,Wednesday,Thursday,Friday,Saturday,Sunday";
 
                     _context.Entry(existingVenue).CurrentValues.SetValues(venue);
                     await _context.SaveChangesAsync();
@@ -253,25 +282,22 @@ namespace ST10296771_CLDV7311_POE.Controllers
 
             try
             {
-                // CHECK FOR ACTIVE BOOKINGS
                 var hasActiveBookings = await _context.Bookings
                     .AnyAsync(b => b.VenueId == id && b.BookingDate >= DateTime.Today);
 
                 if (hasActiveBookings)
                 {
-                    TempData["ErrorMessage"] = "Cannot delete this venue because it has active bookings (today or future).";
+                    TempData["ErrorMessage"] = "Cannot delete this venue because it has active bookings.";
                     return RedirectToAction(nameof(Index));
                 }
 
                 var venue = await _context.Venues.FindAsync(id);
                 if (venue != null)
                 {
-                    // Delete image from Azure Blob Storage
                     if (!string.IsNullOrEmpty(venue.ImageFileName))
                     {
                         await _blobStorageService.DeleteImageAsync(venue.ImageFileName);
                     }
-
                     _context.Venues.Remove(venue);
                     await _context.SaveChangesAsync();
                     TempData["SuccessMessage"] = "Venue deleted successfully.";
@@ -281,13 +307,13 @@ namespace ST10296771_CLDV7311_POE.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error deleting venue");
+                _logger.LogError(ex, $"Error deleting venue ID: {id}");
                 TempData["ErrorMessage"] = "Error deleting venue. Please try again.";
                 return RedirectToAction(nameof(Index));
             }
         }
 
-        // Add this action to fix NULL values
+        // GET: Venues/FixNullVenues - Temporary fix for NULL values
         [HttpGet]
         public async Task<IActionResult> FixNullVenues()
         {
@@ -300,41 +326,16 @@ namespace ST10296771_CLDV7311_POE.Controllers
                 {
                     bool updated = false;
 
-                    if (string.IsNullOrEmpty(venue.VenueName))
-                    {
-                        venue.VenueName = "Unknown Venue";
-                        updated = true;
-                    }
-                    if (string.IsNullOrEmpty(venue.Location))
-                    {
-                        venue.Location = "Unknown Location";
-                        updated = true;
-                    }
-                    if (string.IsNullOrEmpty(venue.ContactPhone))
-                    {
-                        venue.ContactPhone = "Not Provided";
-                        updated = true;
-                    }
-                    if (string.IsNullOrEmpty(venue.ContactEmail))
-                    {
-                        venue.ContactEmail = "Not Provided";
-                        updated = true;
-                    }
-                    if (venue.ImageFileName == null)
-                    {
-                        venue.ImageFileName = string.Empty;
-                        updated = true;
-                    }
-                    if (venue.ImageContentType == null)
-                    {
-                        venue.ImageContentType = string.Empty;
-                        updated = true;
-                    }
-                    if (venue.Capacity == 0)
-                    {
-                        venue.Capacity = 100; // Default capacity
-                        updated = true;
-                    }
+                    if (string.IsNullOrEmpty(venue.VenueName)) { venue.VenueName = "Unknown Venue"; updated = true; }
+                    if (string.IsNullOrEmpty(venue.Location)) { venue.Location = "Unknown Location"; updated = true; }
+                    if (string.IsNullOrEmpty(venue.ContactPhone)) { venue.ContactPhone = "Not Provided"; updated = true; }
+                    if (string.IsNullOrEmpty(venue.ContactEmail)) { venue.ContactEmail = "Not Provided"; updated = true; }
+                    if (string.IsNullOrEmpty(venue.OperatingHours)) { venue.OperatingHours = "9:00 AM - 9:00 PM"; updated = true; }
+                    if (string.IsNullOrEmpty(venue.DaysAvailable)) { venue.DaysAvailable = "Monday,Tuesday,Wednesday,Thursday,Friday,Saturday,Sunday"; updated = true; }
+                    if (string.IsNullOrEmpty(venue.Amenities)) { venue.Amenities = ""; updated = true; }
+                    if (venue.ImageFileName == null) { venue.ImageFileName = ""; updated = true; }
+                    if (venue.ImageContentType == null) { venue.ImageContentType = ""; updated = true; }
+                    if (venue.Capacity == 0) { venue.Capacity = 100; updated = true; }
 
                     if (updated) updatedCount++;
                 }
